@@ -1,0 +1,100 @@
+#define BLYNK_TEMPLATE_ID "TMPLu6s8qu_s"            // name template   
+#define BLYNK_DEVICE_NAME "Plants"			            // name device
+#include <ESP8266WiFi.h>				                    // ประกาศ Library ของ ESP8266
+#include <BlynkSimpleEsp8266.h>				              // ประกาศ Library ของ Blynk
+#include <DHT.h>					                          // ประกาศ Library ของ DHT Sensor
+#include <math.h>   
+
+#define DHTPIN D2					                          // กำหนด Digital pin เชื่อมต่อกับ DHT11 ที่ (D2) 
+#define DHTTYPE DHT11					                      // เซ็นเซอร์ DHT11
+DHT dht(DHTPIN, DHTTYPE);				                    // กำหนด DHT Sensor ชื่อ dht ต่อกับ Pin 2 และเป็นเซ็นเซอร์ DHT11
+
+char auth[] = "83LYA0Gu1YtXO2dP6gPFfkI9m4j2V99P";	  // Token
+char ssid[] = "FIBOWIFI"; 				                  // name wifi
+char pass[] = "Fibo@2538"; 				                  // password wifi
+
+int SoilSensor = A0;					                      // เสียบ Pin A0
+
+#define TRIGGER_PIN  D1
+#define ECHO_PIN     D0
+#define Pump D4						                          // กำหนด Digital pin ของ Pump ที่ (D4)
+
+long duration;
+float distance;
+float A;
+float volume, pervolume;
+float Soil;
+
+void setup() {
+  Serial.begin(115200);
+  Blynk.begin(auth, ssid, pass); 			              // เริ่มการเชื่อมต่อ Blynk Server
+  dht.begin();						                          // เริ่มต้นใช้งาน เซ็นเซอร์ DHT ที่ชื่อ dht
+  pinMode(TRIGGER_PIN, OUTPUT);				              // กำหนดหน้าที่ของ TRIGGER_PIN เป็นขาสัญญาณขาออก
+  pinMode(ECHO_PIN, INPUT); 				                // กำหนดหน้าที่ของ ECHO_PIN เป็นขาสัญญาณขาเข้า
+  pinMode(Pump, OUTPUT); 				                    // กำหนดหน้าที่ของ Pump เป็นขาสัญญาณขาออก
+}
+
+void loop(){
+  Blynk.run();						                          // แสดงการทำงาน Blynk ในมือถือ
+  int Soil = 0;						                          // กำหนดตัวแปร Soil ประเภท int
+  Soil = analogRead(SoilSensor);			              // เก็บค่า analog ใน ตัวแปร Soil
+  Soil = map(Soil, 0, 1023, 100, 0);			          // แปลงค่าจาก 0-1023 เป็น 100-0
+
+  Blynk.virtualWrite(V2, Soil);				              // แสดงค่าเปอร์เซ็นต์ความชื้นในดินใน Blynk โดย virtual pin2
+  delay(1000); 
+
+  float h = dht.readHumidity();      			          // อ่านค่าความชื้น
+  float t = dht.readTemperature();       	        	// อ่านค่าอุณหภูมิเป็นองศาเซลเซียส
+
+  Blynk.virtualWrite(V0, t);			                	// แสดงค่าอุณหภูมิใน Blynk โดย virtual pin0
+  Blynk.virtualWrite(V1, h);		                		// แสดงค่าความชื้นใน Blynk โดย virtual pin1
+
+  digitalWrite(TRIGGER_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(TRIGGER_PIN, LOW);
+  duration = pulseIn(ECHO_PIN, HIGH);
+  
+  distance = microsecondsToCentimeters(duration);
+  A = abs(12-distance);
+  volume = (((3.14*0.04*0.04))*A*10000);// ml
+  pervolume = (volume/502.24)*100;
+
+  Serial.println(distance);
+  Serial.println(A);
+  Serial.println(volume);
+  Serial.println(pervolume);
+
+  Blynk.virtualWrite(V4, volume); //502.24
+  Blynk.virtualWrite(V3, pervolume);
+
+  if (pervolume < 30 || pervolume > 90){
+      Blynk.virtualWrite(V8, 1);		            	 // แสดงไฟ LED เปิด ใน Blynk โดย virtual pin8 เมื่อ Soil มีค่าน้อยกว่า 20 เปอร์เซ็นต์
+  }else{
+      Blynk.virtualWrite(V8, 0);			            // แสดงไฟ LED ปิด ใน Blynk โดย virtual pin8 เมื่อ Soil มีค่าน้อยกว่า 20 เปอร์เซ็นต์
+  }
+
+  if (Soil < 20){
+      Blynk.virtualWrite(V6, 0);			            // แสดงไฟ LED ปิด ใน Blynk โดย virtual pin6 เมื่อ Soil มีค่าน้อยกว่า 20 เปอร์เซ็นต์
+  }else{
+       Blynk.virtualWrite(V6, 1); 		           	// แสดงไฟ LED เปิด ใน Blynk โดย virtual pin6 เมื่อ Soil มีค่ามากกว่า 20 เปอร์เซ็นต์
+  } 
+  delay(1000);       
+}
+
+  BLYNK_WRITE(V5){ 					                      // แสดงปุ่ม เปิด-ปิด โดย virtual pin5
+    Serial.println(param.asInt()); 
+      if (param.asInt()){ 
+        digitalWrite(Pump, LOW); 		            	// Pump ปิด
+      } else {
+        digitalWrite(Pump, HIGH); 			          // Pump เปิด
+      } 
+}
+
+long microsecondsToCentimeters(long microseconds){
+// ความเร็วเสียงในอากาศประมาณ 340 เมตร/วินาที หรือ 29 ไมโครวินาที/เซนติเมตร
+// ระยะทางที่ส่งเสียงออกไปจนเสียงสะท้อนกลับมาสามารถใช้หาระยะทางของวัตถุได้
+// เวลาที่ใช้คือ ระยะทางไปกลับ ดังนั้นระยะทางคือ ครึ่งหนึ่งของที่วัดได้
+return microseconds / 29 / 2;
+}
