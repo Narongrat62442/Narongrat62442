@@ -70,9 +70,9 @@ void loop(){
   Blynk.virtualWrite(V3, pervolume);
 
   if (pervolume < 30 || pervolume > 90){
-      Blynk.virtualWrite(V8, 1);		            	 // แสดงไฟ LED เปิด ใน Blynk โดย virtual pin8 เมื่อ Soil มีค่าน้อยกว่า 20 เปอร์เซ็นต์
+      Blynk.virtualWrite(V8, 1);		            	 // แสดงไฟ LED เปิด ใน Blynk โดย virtual pin8 เมื่อ pervolume มีค่าน้อยกว่า 30 เปอร์เซ็นต์ และ ค่ามากกว่า 90 เปอร์เซ็นต์
   }else{
-      Blynk.virtualWrite(V8, 0);			            // แสดงไฟ LED ปิด ใน Blynk โดย virtual pin8 เมื่อ Soil มีค่าน้อยกว่า 20 เปอร์เซ็นต์
+      Blynk.virtualWrite(V8, 0);			            // แสดงไฟ LED ปิด ใน Blynk โดย virtual pin8 เมื่อ pervolume ระหว่าง 30-90 เปอร์เซ็นต์
   }
 
   if (Soil < 20){
