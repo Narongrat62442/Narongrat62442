@@ -9,9 +9,9 @@
 #define DHTTYPE DHT11					                      // เซ็นเซอร์ DHT11
 DHT dht(DHTPIN, DHTTYPE);				                    // กำหนด DHT Sensor ชื่อ dht ต่อกับ Pin 2 และเป็นเซ็นเซอร์ DHT11
 
-char auth[] = "83LYA0Gu1YtXO2dP6gPFfkI9m4j2V99P";	  // Token
-char ssid[] = "FIBOWIFI"; 				                  // name wifi
-char pass[] = "Fibo@2538"; 				                  // password wifi
+char auth[] = "XXXXX";	                        // Token
+char ssid[] = "XXXXX"; 				                  // name wifi
+char pass[] = "XXXXX"; 				                  // password wifi
 
 int SoilSensor = A0;					                      // เสียบ Pin A0
 
